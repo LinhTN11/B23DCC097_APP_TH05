@@ -1,0 +1,112 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "profiles": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChild('name')",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 60 && newData.val().replace(' ', '').replace('\\t', '').replace('\\r', '').replace('\\n', '').length > 0"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "presence": {
+      ".read": "auth != null",
+      "$uid": {
+        "$connection": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
+    "chats": {
+      "$lower": {
+        "$higher": {
+          ".read": "auth != null && (auth.uid === $lower || auth.uid === $higher)",
+          "messages": {
+            ".indexOn": [
+              "createdAt"
+            ],
+            "$message": {
+              ".write": "auth != null && $lower < $higher && (auth.uid === $lower || auth.uid === $higher) && root.child('profiles/' + $lower).exists() && root.child('profiles/' + $higher).exists() && !data.exists() && newData.exists() && $message.matches(/^[A-Za-z0-9_-]{20}$/)",
+              ".validate": "newData.hasChildren(['senderId', 'kind', 'createdAt']) && ((newData.child('kind').val() === 'text' && newData.child('text').exists() && !newData.child('latitude').exists() && !newData.child('longitude').exists()) || (newData.child('kind').val() === 'location' && !newData.child('text').exists() && newData.hasChildren(['latitude', 'longitude']))) && newData.parent().parent().parent().parent().parent().child('inbox/' + $lower + '/' + $higher + '/id').val() === $message && newData.parent().parent().parent().parent().parent().child('inbox/' + $higher + '/' + $lower + '/id').val() === $message && newData.parent().parent().parent().parent().parent().child('unread/' + (auth.uid === $lower ? $higher : $lower) + '/' + auth.uid + '/' + $message).val() === newData.child('createdAt').val()",
+              "senderId": {
+                ".validate": "newData.val() === auth.uid"
+              },
+              "kind": {
+                ".validate": "newData.val() === 'text' || newData.val() === 'location'"
+              },
+              "createdAt": {
+                ".validate": "newData.isNumber() && newData.val() === now"
+              },
+              "text": {
+                ".validate": "newData.isString() && newData.val().length <= 4000 && newData.val().replace(' ', '').replace('\\t', '').replace('\\r', '').replace('\\n', '').length > 0"
+              },
+              "latitude": {
+                ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+              },
+              "longitude": {
+                ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "inbox": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$peer": {
+          ".write": "auth != null && $uid !== $peer && (auth.uid === $uid || auth.uid === $peer) && newData.child('senderId').val() === auth.uid && newData.child('id').isString() && !root.child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).exists()",
+          ".validate": "newData.hasChildren(['senderId', 'kind', 'createdAt']) && ((newData.child('kind').val() === 'text' && newData.child('text').exists() && !newData.child('latitude').exists() && !newData.child('longitude').exists()) || (newData.child('kind').val() === 'location' && !newData.child('text').exists() && newData.hasChildren(['latitude', 'longitude']))) && newData.hasChild('id') && newData.child('senderId').val() === newData.parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).child('senderId').val() && newData.child('kind').val() === newData.parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).child('kind').val() && newData.child('createdAt').val() === newData.parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).child('createdAt').val() && newData.child('text').val() === newData.parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).child('text').val() && newData.child('latitude').val() === newData.parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).child('latitude').val() && newData.child('longitude').val() === newData.parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + newData.child('id').val()).child('longitude').val()",
+          "senderId": {
+            ".validate": "newData.val() === auth.uid"
+          },
+          "kind": {
+            ".validate": "newData.val() === 'text' || newData.val() === 'location'"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() && newData.val() === now"
+          },
+          "text": {
+            ".validate": "newData.isString() && newData.val().length <= 4000 && newData.val().replace(' ', '').replace('\\t', '').replace('\\r', '').replace('\\n', '').length > 0"
+          },
+          "latitude": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "longitude": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          },
+          "$other": {
+            ".validate": false
+          },
+          "id": {
+            ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{20}$/)"
+          }
+        }
+      }
+    },
+    "unread": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$peer": {
+          ".indexOn": [
+            ".value"
+          ],
+          "$message": {
+            ".write": "auth != null && ((auth.uid === $uid && !newData.exists()) || (auth.uid === $peer && $uid !== $peer && !data.exists() && newData.exists() && !root.child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + $message).exists()))",
+            ".validate": "newData.isNumber() && newData.val() === newData.parent().parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + $message).child('createdAt').val() && newData.parent().parent().parent().parent().child('chats/' + ($uid < $peer ? $uid : $peer) + '/' + ($uid < $peer ? $peer : $uid) + '/messages/' + $message).child('senderId').val() === $peer"
+          }
+        }
+      }
+    }
+  }
+}
